@@ -1,0 +1,25 @@
+name: Check
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  manager-and-core:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust manager tests and build
+        shell: pwsh
+        run: |
+          cargo test --locked --all-targets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --locked --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Transfer core
+        shell: pwsh
+        run: |
+          cmake -S . -B build/core -A x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/core --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/core -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

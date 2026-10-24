@@ -1,0 +1,6 @@
+# Dependency lockfile for Cableloom.
+version = 3
+
+[[package]]
+name = "cableloom"
+version = "0.1.0"

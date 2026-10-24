@@ -1,0 +1,38 @@
+param(
+    [string]$WdkRoot = (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Windows Kits\10'),
+    [ValidatePattern('^\d+\.\d+\.\d+\.\d+$')][string]$WdkVersion = '10.0.26100.0',
+    [string]$Output = (Join-Path $PSScriptRoot 'build\driver')
+)
+$ErrorActionPreference = 'Stop'
+$km = Join-Path $WdkRoot "Include\$WdkVersion\km"
+$lib = Join-Path $WdkRoot "Lib\$WdkVersion\km\x64"
+foreach ($item in @((Join-Path $km 'portcls.h'), (Join-Path $lib 'portcls.lib'), (Join-Path $lib 'BufferOverflowFastFailK.lib'))) {
+    if (-not (Test-Path -LiteralPath $item)) { throw "Required WDK file is missing: $item. Install a matching Windows SDK/WDK first." }
+}
+$vswhere = Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft Visual Studio\Installer\vswhere.exe'
+$vs = & $vswhere -latest -version '[17.0,18.0)' -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+if (-not $vs) { throw 'Visual Studio 2022 C++ tools are required.' }
+$vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+$environment = & cmd.exe /d /s /c ('"' + $vcvars + '" >nul && set')
+if ($LASTEXITCODE -ne 0) { throw 'Cannot initialize the Visual C++ environment.' }
+foreach ($line in $environment) {
+    if ($line -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process') }
+}
+New-Item -ItemType Directory -Path $Output -Force | Out-Null
+$Output = (Resolve-Path -LiteralPath $Output).Path
+$common = @('/nologo','/c','/std:c++17','/kernel','/GR-','/EHs-c-','/Zl','/Zc:throwingNew-','/Zc:threadSafeInit-',
+    '/W4','/GS','/Oi','/O2','/D_AMD64_','/DAMD64','/D_WIN64','/D_KERNEL_MODE',
+    '/DNTDDI_VERSION=0x0A000008','/D_WIN32_WINNT=0x0A00','/DWINVER=0x0A00',
+    "/I$km", "/I$(Join-Path $WdkRoot "Include\$WdkVersion\shared")", "/I$(Join-Path $WdkRoot "Include\$WdkVersion\ucrt")")
+$objects = @()
+foreach ($name in 'driver','adapter','miniport','stream') {
+    $object = Join-Path $Output "$name.obj"
+    & cl.exe @common (Join-Path $PSScriptRoot "driver\$name.cpp") "/Fo$object"
+    if ($LASTEXITCODE -ne 0) { throw "C++ compilation failed: $name" }
+    $objects += $object
+}
+& link.exe /NOLOGO /DRIVER /SUBSYSTEM:NATIVE,10.00 /MACHINE:X64 /ENTRY:GsDriverEntry /NODEFAULTLIB /MANIFEST:NO /INTEGRITYCHECK /DYNAMICBASE /NXCOMPAT /OPT:REF /OPT:ICF /DEBUG "/OUT:$Output\cableloom.sys" "/PDB:$Output\cableloom.pdb" "/LIBPATH:$lib" @objects ntoskrnl.lib hal.lib portcls.lib BufferOverflowFastFailK.lib
+if ($LASTEXITCODE -ne 0) { throw 'Kernel driver link failed.' }
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'driver\cableloom.inf') -Destination $Output
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE') -Destination $Output
+Write-Output "Unsigned driver built in $Output. Run InfVerif, generate a catalog, sign and verify the package before installation."

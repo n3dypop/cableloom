@@ -1,0 +1,84 @@
+[Version]
+Signature="$WINDOWS NT$"
+Class=MEDIA
+ClassGuid={4d36e96c-e325-11ce-bfc1-08002be10318}
+Provider=%Provider%
+DriverVer=10/24/2026,0.1.0.0
+CatalogFile=cableloom.cat
+PnpLockdown=1
+[Manufacturer]
+%Provider%=Models,NTamd64.10.0...19041
+[Models.NTamd64.10.0...19041]
+%Device%=Install,Root\Cableloom
+[DestinationDirs]
+DriverCopy=13
+[SourceDisksNames]
+1=%Disk%
+[SourceDisksFiles]
+cableloom.sys=1
+[Install.NT]
+Include=ks.inf,wdmaudio.inf
+Needs=KS.Registration,WDMAUDIO.Registration
+CopyFiles=DriverCopy
+[DriverCopy]
+cableloom.sys
+[Install.NT.HW]
+AddReg=DeviceSecurity
+[DeviceSecurity]
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;AU)"
+[Install.NT.Services]
+AddService=Cableloom,0x2,Service
+[Service]
+DisplayName=%Device%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%13%\cableloom.sys
+[Install.NT.Interfaces]
+AddInterface=%Audio%,RenderWave,RenderWave
+AddInterface=%Render%,RenderWave,RenderWave
+AddInterface=%Realtime%,RenderWave,RenderWave
+AddInterface=%Audio%,CaptureWave,CaptureWave
+AddInterface=%Capture%,CaptureWave,CaptureWave
+AddInterface=%Realtime%,CaptureWave,CaptureWave
+AddInterface=%Audio%,RenderTopology,RenderTopology
+AddInterface=%Topology%,RenderTopology,RenderTopology
+AddInterface=%Audio%,CaptureTopology,CaptureTopology
+AddInterface=%Topology%,CaptureTopology,CaptureTopology
+[RenderWave]
+AddReg=RenderWaveReg
+[RenderWaveReg]
+HKR,,CLSID,,%Proxy%
+HKR,,FriendlyName,,%Send%
+[CaptureWave]
+AddReg=CaptureWaveReg
+[CaptureWaveReg]
+HKR,,CLSID,,%Proxy%
+HKR,,FriendlyName,,%Receive%
+[RenderTopology]
+AddReg=RenderTopologyReg,DefaultFormat
+[RenderTopologyReg]
+HKR,,CLSID,,%Proxy%
+HKR,,FriendlyName,,%Send%
+[CaptureTopology]
+AddReg=CaptureTopologyReg,DefaultFormat
+[CaptureTopologyReg]
+HKR,,CLSID,,%Proxy%
+HKR,,FriendlyName,,%Receive%
+[DefaultFormat]
+; 48 kHz, stereo, PCM32, valid bits 32, channel mask FL|FR.
+HKR,"EP\0","{1DA5D803-D492-4EDD-8C23-E0C0FFEE7F0E},2",,%AnyNode%
+HKR,"EP\0","{E4870E26-3CC5-4CD2-BA46-CA0A9A70ED04},3",1,41,00,00,00,28,00,00,00,fe,ff,02,00,80,bb,00,00,00,dc,05,00,08,00,20,00,16,00,20,00,03,00,00,00,01,00,00,00,00,00,10,00,80,00,00,aa,00,38,9b,71
+[Strings]
+Provider="Cableloom contributors"
+Device="Cableloom Virtual Audio Cable"
+Disk="Cableloom Driver"
+Send="Cableloom Send"
+Receive="Cableloom Receive"
+Audio="{6994ad04-93ef-11d0-a3cc-00a0c9223196}"
+Render="{65e8773e-8f56-11d0-a3b9-00a0c9223196}"
+Capture="{65e8773d-8f56-11d0-a3b9-00a0c9223196}"
+Realtime="{eb115ffc-10c8-4964-831d-6dcb02e6f23f}"
+Topology="{dda54a40-1e4c-11d1-a050-405705c10000}"
+Proxy="{17cca71b-ecd7-11d0-b908-00a0c9223196}"
+AnyNode="{00000000-0000-0000-0000-000000000000}"
