@@ -4,7 +4,7 @@ Experimental Windows virtual audio cables with a Rust manager and a C++ PortCls/
 
 The source implements up to eight independent root-enumerated cable devices, each with a render/capture pair, its own queue, clock accounting, notification state and statistics. The manager provides a native Windows GUI and a CLI for driver staging, cable creation/removal, status and queue-delay selection.
 
-**Development status:** the transfer core has host-side tests. The Rust manager and the kernel driver have not yet been built and validated together. This is not a production-ready or signed driver release. No latency, fidelity or stability advantage over existing products has been established.
+**Development status:** the transfer core and Rust manager tests pass. The manager builds with Rust 1.99.1, and its read-only CLI has been exercised. GUI display and live device management remain unverified. The kernel driver has not yet been built or validated; this is not a signed or production-ready release. No performance advantage over existing products has been established.
 
 ## Requirements and build
 
@@ -21,7 +21,7 @@ The manager has no external crate dependencies. Install matching Windows SDK and
 .\build-driver.ps1 -WdkRoot 'C:\Program Files (x86)\Windows Kits\10'
 ```
 
-Use -WdkVersion if the installed include/library version differs. The script emits an **unsigned** driver and INF in build/driver. Package validation, catalog generation, signing and signature verification are required before Windows can load it. Use a dedicated driver-test machine for kernel validation. The script does not change boot settings, certificate trust or installed devices.
+Use -WdkVersion if the installed include/library version differs. The driver script selects VS2022 for kit 26100 and VS2026 for kit 28000. For separately located kits, pass -SdkRoot and -SdkVersion; SDK/WDK build numbers must match. The script emits an **unsigned** driver and INF in build/driver. Package validation, catalog generation, signing and signature verification are required before Windows can load it. Use a dedicated driver-test machine for kernel validation. The script does not change boot settings, certificate trust or installed devices.
 
 Run the portable transfer-core tests with CMake and a C++17 compiler:
 
@@ -55,5 +55,6 @@ Select the cable's Send endpoint in the producing application and its Receive en
 - RUN transitions flush queued audio. Underflow emits silence, overflow drops oldest queued frames, and excessive timer delays trigger bounded resynchronization with counters.
 - A 1 ms high-resolution timer is requested only while streams run. Actual timing and minimum usable buffer size depend on Windows scheduling and must be measured.
 - Dynamic endpoint naming, ARM64, other sample rates, float PCM and production driver certification are not implemented.
+- VST plugin hosting is being designed and is not implemented.
 
 Licensed under MIT; see [LICENSE](LICENSE). Include the license with redistributed packages.
