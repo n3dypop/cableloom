@@ -29,7 +29,7 @@ foreach ($line in $environment) {
 New-Item -ItemType Directory -Path $Output -Force | Out-Null
 $Output = (Resolve-Path -LiteralPath $Output).Path
 $common = @('/nologo','/c','/std:c++17','/utf-8','/kernel','/GR-','/EHs-c-','/Zl','/Zc:throwingNew-','/Zc:threadSafeInit-',
-    '/W4','/GS','/Oi','/O2','/D_AMD64_','/DAMD64','/D_WIN64','/D_KERNEL_MODE',
+    '/W4','/GS','/Oi','/O2','/Zi','/D_AMD64_','/DAMD64','/D_WIN64',
     '/DNTDDI_VERSION=0x0A000008','/D_WIN32_WINNT=0x0A00','/DWINVER=0x0A00',
     "/I$km", "/I$(Join-Path $SdkRoot "Include\$SdkVersion\shared")", "/I$(Join-Path $SdkRoot "Include\$SdkVersion\ucrt")")
 $objects = @()
@@ -39,7 +39,7 @@ foreach ($name in 'driver','adapter','miniport','stream') {
     if ($LASTEXITCODE -ne 0) { throw "C++ compilation failed: $name" }
     $objects += $object
 }
-& link.exe /NOLOGO /DRIVER /SUBSYSTEM:NATIVE,10.00 /MACHINE:X64 /ENTRY:GsDriverEntry /NODEFAULTLIB /MANIFEST:NO /INTEGRITYCHECK /DYNAMICBASE /NXCOMPAT /OPT:REF /OPT:ICF /DEBUG "/OUT:$Output\cableloom.sys" "/PDB:$Output\cableloom.pdb" "/LIBPATH:$lib" @objects ntoskrnl.lib hal.lib portcls.lib BufferOverflowFastFailK.lib
+& link.exe /NOLOGO /DRIVER /SUBSYSTEM:NATIVE,10.00 /MACHINE:X64 /ENTRY:GsDriverEntry /NODEFAULTLIB /MANIFEST:NO /INTEGRITYCHECK /DYNAMICBASE /NXCOMPAT /OPT:REF /OPT:ICF /DEBUG:FULL "/PDBALTPATH:%_PDB%" "/OUT:$Output\cableloom.sys" "/PDB:$Output\cableloom.pdb" "/LIBPATH:$lib" @objects ntoskrnl.lib hal.lib portcls.lib BufferOverflowFastFailK.lib
 if ($LASTEXITCODE -ne 0) { throw 'Kernel driver link failed.' }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'driver\cableloom.inf') -Destination $Output
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE') -Destination $Output

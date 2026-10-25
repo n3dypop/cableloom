@@ -3,7 +3,7 @@
 extern void InitializeDescriptors();
 const GUID GUID_DEVINTERFACE_CABLELOOM = {0x1678cb4e,0x9a71,0x4c0f,{0xba,0xe5,0x12,0xef,0x00,0xcb,0x71,0x28}};
 static constexpr ULONG tag = 'moLC';
-void* __cdecl operator new(size_t bytes) noexcept { return ExAllocatePool2(POOL_FLAG_NON_PAGED, bytes, tag); }
+void* __cdecl operator new(size_t bytes) { return ExAllocatePool2(POOL_FLAG_NON_PAGED, bytes, tag); }
 void __cdecl operator delete(void* memory) noexcept { if (memory) ExFreePoolWithTag(memory, tag); }
 void __cdecl operator delete(void* memory, size_t) noexcept { if (memory) ExFreePoolWithTag(memory, tag); }
 struct Extension {
@@ -20,7 +20,7 @@ static NTSTATUS Finish(PIRP irp, NTSTATUS status, ULONG_PTR count = 0) {
     IoCompleteRequest(irp, IO_NO_INCREMENT); return status;
 }
 static NTSTATUS RegisterPort(PDEVICE_OBJECT device, PIRP irp, PRESOURCELIST resources,
-    PCWSTR name, REFCLSID clsid, PUNKNOWN miniport, PPORT* result) {
+    PWSTR name, REFCLSID clsid, PUNKNOWN miniport, PPORT* result) {
     *result = nullptr;
     PPORT port = nullptr;
     NTSTATUS status = PcNewPort(&port, clsid);
@@ -45,7 +45,11 @@ static NTSTATUS StartDevice(PDEVICE_OBJECT device, PIRP irp, PRESOURCELIST resou
         miniports[3] = static_cast<IMiniportTopology*>(new Topology(true));
         for (auto m : miniports) if (!m) status = STATUS_INSUFFICIENT_RESOURCES;
     }
-    PCWSTR names[] = { L"RenderWave", L"CaptureWave", L"RenderTopology", L"CaptureTopology" };
+    WCHAR render_wave[] = L"RenderWave";
+    WCHAR capture_wave[] = L"CaptureWave";
+    WCHAR render_topology[] = L"RenderTopology";
+    WCHAR capture_topology[] = L"CaptureTopology";
+    PWSTR names[] = { render_wave, capture_wave, render_topology, capture_topology };
     for (ULONG i = 0; i < 4 && NT_SUCCESS(status); ++i)
         status = RegisterPort(device, irp, resources, names[i], i < 2 ? CLSID_PortWaveRT : CLSID_PortTopology, miniports[i], &ports[i]);
     if (NT_SUCCESS(status)) status = PcRegisterPhysicalConnection(device, ports[0], 1, ports[2], 0);

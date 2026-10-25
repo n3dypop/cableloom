@@ -60,7 +60,8 @@ static NTSTATUS Intersect(ULONG pin, bool streaming, PKSDATARANGE client, PKSDAT
         !IsEqualGUIDAligned(client->MajorFormat, KSDATAFORMAT_TYPE_WILDCARD)) return STATUS_NO_MATCH;
     if ((!IsEqualGUIDAligned(client->SubFormat, KSDATAFORMAT_SUBTYPE_PCM) &&
          !IsEqualGUIDAligned(client->SubFormat, KSDATAFORMAT_SUBTYPE_WILDCARD)) ||
-        !IsEqualGUIDAligned(client->Specifier, KSDATAFORMAT_SPECIFIER_WAVEFORMATEX)) return STATUS_NO_MATCH;
+        (!IsEqualGUIDAligned(client->Specifier, KSDATAFORMAT_SPECIFIER_WAVEFORMATEX) &&
+         !IsEqualGUIDAligned(client->Specifier, KSDATAFORMAT_SPECIFIER_WILDCARD))) return STATUS_NO_MATCH;
     if (client->FormatSize < sizeof(KSDATARANGE_AUDIO)) return STATUS_NO_MATCH;
     auto range = reinterpret_cast<PKSDATARANGE_AUDIO>(client);
     if (range->MaximumChannels < 2 ||

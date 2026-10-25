@@ -9,3 +9,43 @@ else()
   target_compile_options(core_tests PRIVATE -Wall -Wextra -Werror)
 endif()
 add_test(NAME core COMMAND core_tests)
+
+add_executable(vst_support_tests tests/vst_support_tests.cpp)
+target_include_directories(vst_support_tests PRIVATE vst-worker)
+target_compile_features(vst_support_tests PRIVATE cxx_std_17)
+if(MSVC)
+  target_compile_options(vst_support_tests PRIVATE /W4 /WX)
+else()
+  target_compile_options(vst_support_tests PRIVATE -Wall -Wextra -Werror)
+endif()
+add_test(NAME vst_support COMMAND vst_support_tests)
+
+option(CABLELOOM_BUILD_VST_WORKER "Build the isolated VST3 host worker" OFF)
+set(CABLELOOM_VST3_SDK_ROOT "" CACHE PATH "Path to a pinned Steinberg VST3 SDK checkout")
+if(CABLELOOM_BUILD_VST_WORKER)
+  if(NOT WIN32 OR NOT MSVC)
+    message(FATAL_ERROR "The VST3 worker currently requires Windows and MSVC.")
+  endif()
+  if(NOT EXISTS "${CABLELOOM_VST3_SDK_ROOT}/LICENSE.txt")
+    message(FATAL_ERROR "Set CABLELOOM_VST3_SDK_ROOT to a complete VST3 SDK checkout.")
+  endif()
+  set(SMTG_ENABLE_VST3_PLUGIN_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(SMTG_ENABLE_VST3_HOSTING_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(SMTG_ENABLE_VSTGUI_SUPPORT OFF CACHE BOOL "" FORCE)
+  set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "" FORCE)
+  add_subdirectory("${CABLELOOM_VST3_SDK_ROOT}" "${CMAKE_BINARY_DIR}/vst3sdk")
+  add_executable(cableloom-vst-worker
+    vst-worker/main.cpp
+    vst-worker/vst_chain.cpp
+    vst-worker/wasapi_route.cpp
+    "${CABLELOOM_VST3_SDK_ROOT}/public.sdk/source/vst/hosting/module_win32.cpp")
+  target_compile_features(cableloom-vst-worker PRIVATE cxx_std_17)
+  target_compile_definitions(cableloom-vst-worker PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+  target_compile_options(cableloom-vst-worker PRIVATE /W4 /WX)
+  target_link_libraries(cableloom-vst-worker PRIVATE sdk_hosting ole32 avrt cfgmgr32)
+  set_target_properties(cableloom-vst-worker PROPERTIES OUTPUT_NAME "cableloom-vst-worker")
+  add_custom_command(TARGET cableloom-vst-worker POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CABLELOOM_VST3_SDK_ROOT}/LICENSE.txt"
+      "$<TARGET_FILE_DIR:cableloom-vst-worker>/VST3_SDK_LICENSE.txt")
+endif()

@@ -2,6 +2,8 @@
 mod gui;
 mod protocol;
 #[cfg(windows)]
+mod vst_worker;
+#[cfg(windows)]
 mod win;
 #[cfg(all(windows, not(target_arch = "x86_64")))]
 compile_error!("Cableloom currently supports Windows x64 only.");
@@ -14,6 +16,7 @@ enum Action {
     Add(u32),
     Remove(u32),
     Delay(u32, u32),
+    Vst(Vec<String>),
     Help,
 }
 fn id(value: &str) -> Result<u32, String> {
@@ -43,6 +46,9 @@ fn parse(args: &[String]) -> Result<Action, String> {
             }
             Ok(Action::Delay(id(n)?, frames))
         }
+        ["vst", rest @ ..] if !rest.is_empty() => Ok(Action::Vst(
+            rest.iter().map(|value| (*value).to_string()).collect(),
+        )),
         ["help"] | ["--help"] | ["-h"] => Ok(Action::Help),
         _ => Err("Unknown arguments. Use 'cableloom --help'.".into()),
     }
@@ -57,6 +63,7 @@ Usage:
   cableloom add <1..8>
   cableloom remove <1..8>
   cableloom delay <1..8> <48..480 frames>
+  cableloom vst <scan|list-endpoints|benchmark|live> [worker options]
 
 Install, add and remove require administrator access. The GUI requests elevation
 only for these operations. Delay changes require both streams to be stopped and
@@ -114,6 +121,7 @@ fn execute(action: Action) -> Result<(), String> {
                 frames as f64 / 48.0
             );
         }
+        Action::Vst(args) => vst_worker::run(&args)?,
     }
     Ok(())
 }
@@ -199,5 +207,10 @@ mod tests {
         assert!(p(&["delay", "1", "-1"]).is_err());
         assert!(p(&["list", "ignored"]).is_err());
         assert!(p(&["install"]).is_err());
+        assert_eq!(
+            p(&["vst", "scan", "effect.vst3"]),
+            Ok(Action::Vst(vec!["scan".into(), "effect.vst3".into()]))
+        );
+        assert!(p(&["vst"]).is_err());
     }
 }

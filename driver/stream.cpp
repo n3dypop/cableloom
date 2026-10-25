@@ -86,6 +86,7 @@ STDMETHODIMP Stream::GetPosition(PKSAUDIO_POSITION result) {
     return STATUS_SUCCESS;
 }
 STDMETHODIMP_(VOID) Stream::GetHWLatency(KSRTAUDIO_HWLATENCY* result) {
+    if (!result) return;
     RtlZeroMemory(result, sizeof(*result));
     ClStatus status{}; adapter->status(&status);
     result->FifoSize = capture ? status.delay_frames * frame_bytes : 0;
