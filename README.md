@@ -27,9 +27,10 @@ Cableloom does not require or recommend disabling Secure Boot, enabling BCD test
 
 ```powershell
 .\build-attestation-cab.ps1 -PackageDirectory C:\build\cableloom-package -Output C:\build\cableloom-attestation
+.\verify-attestation-package.ps1 -PackageDirectory C:\build\cableloom-package -CabPath C:\build\cableloom-attestation\Cableloom-attestation.cab
 ```
 
-The input directory must contain `cableloom.inf`, `cableloom.sys`, `cableloom.pdb` and `cableloom.cat`. The resulting CAB is still unsigned: an organization with a Hardware Developer Program account must sign it using a Partner Center-registered EV certificate and submit it for Microsoft attestation signing. Production/Windows Update distribution requires the applicable HLK/WHCP path.
+The input directory must contain `cableloom.inf`, `cableloom.sys`, `cableloom.pdb` and `cableloom.cat`. The verification script reruns all three InfVerif modes, checks that the CAB contains exactly those four files below a short alphanumeric subdirectory, and compares every SHA-256 hash. The resulting CAB is still unsigned: an organization with a Hardware Developer Program account must sign it using a Partner Center-registered certificate and submit it for Microsoft attestation signing. Attestation signing is for Windows 10/11 Desktop testing scenarios and is not Windows certification or general Windows Update publication; production distribution requires the applicable HLK/WHCP path.
 
 Run the portable transfer-core tests with CMake and a C++17 compiler:
 
